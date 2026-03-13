@@ -1,6 +1,7 @@
 package com.example.myautomation;
 
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.widget.Button;
 import android.hardware.camera2.CameraManager;
 import android.content.Context;
@@ -8,6 +9,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.VibrationEffect;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private SensorManager sensorManager;
     private Sensor accelerometer;
     private long lastShakeTime = 0;
+    private Vibrator vibrator;
 
     private final SensorEventListener sensorListener = new SensorEventListener() {
         @Override
@@ -28,12 +31,13 @@ public class MainActivity extends AppCompatActivity {
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
-
-            float acceleration = (float) Math.sqrt(x*x + y*y + z*z);
+            float acceleration = (float)Math.sqrt(x*x + y*y + z*z);
             long currentTime = System.currentTimeMillis();
-            if(acceleration > 50 && currentTime - lastShakeTime > 1000) {
+
+            if(acceleration > 45 && currentTime - lastShakeTime > 1000) {
                 lastShakeTime = currentTime;
                 toggleFlashlight();
+                vibrate();
             }
         }
 
@@ -61,6 +65,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void vibrate() {
+        if (vibrator != null && vibrator.hasVibrator()) {
+            vibrator.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE));
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,14 +78,28 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
-        sensorManager.registerListener(sensorListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (accelerometer != null) {
+            sensorManager.registerListener(sensorListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        sensorManager.unregisterListener(sensorListener);
     }
 }
