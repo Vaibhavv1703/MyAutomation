@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">MyAutomation__Kotlin</string>
+    <string name="status_denied">Permissions denied — app won\'t work properly</string>
+    <string name="status_stopped">Automation Stopped</string>
+    <string name="status_started">Automation Running</string>
 </resources>

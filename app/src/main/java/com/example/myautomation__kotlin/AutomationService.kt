@@ -53,6 +53,8 @@ class AutomationService : Service() {
                 SensorManager.SENSOR_DELAY_NORMAL
             )
         }
+        val broadcastIntent = Intent("SERVICE_STARTED")
+        sendBroadcast(broadcastIntent)
 
         return START_STICKY
     }
@@ -69,7 +71,6 @@ class AutomationService : Service() {
 
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("MyAutomation Running")
-            .setContentText("Shake phone to toggle flashlight")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .build()

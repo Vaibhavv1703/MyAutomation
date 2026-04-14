@@ -10,9 +10,30 @@ import android.Manifest
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.pm.PackageManager
 import android.os.Build
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
 
 class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
+
+    private val serviceStartedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            statusText.text = getString(R.string.status_started)
+        }
+    }
+    override fun onResume() {
+        super.onResume()
+        registerReceiver(
+            serviceStartedReceiver,
+            IntentFilter("SERVICE_STARTED"),
+            RECEIVER_NOT_EXPORTED
+        )
+    }
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(serviceStartedReceiver)
+    }
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -21,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         val notifGranted = permissions[Manifest.permission.POST_NOTIFICATIONS] ?: false
 
         if (!cameraGranted || !notifGranted) {
-            statusText.text = "Permissions denied — app won't work properly"
+            statusText.text = getString(R.string.status_denied)
         }
     }
 
@@ -45,7 +66,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        requestPermissions()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -53,18 +73,20 @@ class MainActivity : AppCompatActivity() {
         val startButton = findViewById<Button>(R.id.startButton)
         val stopButton = findViewById<Button>(R.id.stopButton)
 
+        requestPermissions()
+
         startButton.setOnClickListener {
             val intent = Intent(this, AutomationService::class.java)
             ContextCompat.startForegroundService(this, intent)
 
-            statusText.text = "Automation Started"
+            statusText.text = getString(R.string.status_started)
         }
 
         stopButton.setOnClickListener {
             val intent = Intent(this, AutomationService::class.java)
             stopService(intent)
 
-            statusText.text = "Automation Stopped"
+            statusText.text = getString(R.string.status_stopped)
         }
     }
 }
