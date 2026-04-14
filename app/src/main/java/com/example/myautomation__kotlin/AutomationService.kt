@@ -16,7 +16,6 @@ import android.hardware.camera2.CameraManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import kotlin.math.abs
-import kotlin.math.sqrt
 
 class AutomationService : Service() {
     private lateinit var sensorManager: SensorManager
@@ -82,36 +81,38 @@ class AutomationService : Service() {
         private var lastX = 0f
         private var directionChanges = 0
         private var lastDirectionChangeTime = 0L
+        private var lastDeltaSign = 0
 
         override fun onSensorChanged(event: SensorEvent) {
             val x = event.values[0]
-            val y = event.values[1]
-
             val currentTime = System.currentTimeMillis()
 
-            // Horizontal force only (ignore Z)
-            val horizontalForce = sqrt((x * x + y * y).toDouble())
+            val delta = x - lastX
 
-            // Step 1: Must be a strong movement
-            if (horizontalForce > 6) {
+            if (abs(delta) > 10) {
+                val currentSign = if (delta > 0) 1 else -1
 
-                // Step 2: Detect direction change (left-right motion)
-                if (abs(x - lastX) > 6) {
-                    directionChanges++
+                if (lastDeltaSign != 0 && currentSign != lastDeltaSign) {
+                    // Genuine reversal — phone went one way then came back
+                    if (currentTime - lastDirectionChangeTime < 400) {
+                        directionChanges++
+                    } else {
+                        directionChanges = 1
+                    }
                     lastDirectionChangeTime = currentTime
-                    lastX = x
                 }
 
-                // Step 3: Require multiple direction changes (real shake)
-                if (directionChanges >= 3 && currentTime - lastShakeTime > 1000) {
-                    lastShakeTime = currentTime
-                    directionChanges = 0
-
-                    toggleFlashlight()
-                    vibrate()
-                }
+                lastDeltaSign = currentSign
+                lastX = x
             }
-            // Reset if too slow (not a real shake)
+
+            if (directionChanges >= 5 && currentTime - lastShakeTime > 1000) {
+                lastShakeTime = currentTime
+                directionChanges = 0
+                toggleFlashlight()
+                vibrate()
+            }
+
             if (currentTime - lastDirectionChangeTime > 500) {
                 directionChanges = 0
             }
